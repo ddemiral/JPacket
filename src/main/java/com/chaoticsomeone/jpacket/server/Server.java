@@ -1,6 +1,7 @@
 package com.chaoticsomeone.jpacket.server;
 
 import com.chaoticsomeone.jpacket.common.ClientSocket;
+import com.chaoticsomeone.jpacket.common.CollectionUtils;
 import com.chaoticsomeone.jpacket.common.ConditionalRunner;
 import com.chaoticsomeone.jpacket.common.PacketIO;
 import com.chaoticsomeone.jpacket.packet.PacketData;
@@ -60,38 +61,34 @@ public class Server extends Thread {
 		initialize();
 
 		while (isRunning) {
-			Iterator<Map.Entry<UUID, ClientSocket>> clientIterator = clientSockets.entrySet().iterator();
-			while (clientIterator.hasNext()) {
-				Map.Entry<UUID, ClientSocket> client = clientIterator.next();
-				ClientSocket clientSocket = client.getValue();
-
+			CollectionUtils.mapForEach(clientSockets, (iterator,uuid, clientSocket) -> {
 				try {
 					if (clientSocket.isClosed() || !clientSocket.areBytesAvailable()) {
-						continue;
+						return;
 					}
 
 					Optional<PacketData> data = PacketIO.getInstance().readFromStream(clientSocket.getIn(), dispatcher);
 
-					if (data.isPresent()) {
+					ConditionalRunner.run(data.isPresent(), () -> {
 						if (data.get() instanceof TerminatePacket) {
 							PacketIO.getInstance().sendPacket(new TerminatePacket(), clientSocket, dispatcher);
-							clientIterator.remove();
+							iterator.remove();
 							close(); // @ToDo
 						} else if (data.get() instanceof UUIDSyncPacket packet) {
 							if (packet.getState() == 0) {
 								clientSocket.close();
-								clientIterator.remove();
+								iterator.remove();
 							}
 						} else {
 							dispatcher.dispatch(data.get());
 							PacketIO.getInstance().sendPacket(new ResponsePacket(200, data.get()), clientSocket, dispatcher);
 						}
 						Thread.sleep(10);
-					}
-				} catch (IOException | ClassNotFoundException | InterruptedException e) {
+					});
+				} catch (IOException | ClassNotFoundException e) {
 					e.printStackTrace();
 				}
-			}
+			});
 		}
 	}
 
