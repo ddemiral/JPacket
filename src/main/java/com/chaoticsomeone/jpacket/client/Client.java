@@ -2,6 +2,7 @@ package com.chaoticsomeone.jpacket.client;
 
 import com.chaoticsomeone.jpacket.common.ClientSocket;
 import com.chaoticsomeone.jpacket.common.PacketIO;
+import com.chaoticsomeone.jpacket.packet.Packet;
 import com.chaoticsomeone.jpacket.packet.PacketData;
 import com.chaoticsomeone.jpacket.packet.PacketDispatcher;
 import com.chaoticsomeone.jpacket.packet.defaulttypes.TerminatePacket;
@@ -27,6 +28,10 @@ public class Client {
 		isRunning = true;
 
 		startListening();
+	}
+
+	public void sendPacket(PacketData data) throws IOException {
+		PacketIO.getInstance().sendPacket(data, socket, dispatcher);
 	}
 
 	private void receivePacket() {
