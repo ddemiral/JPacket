@@ -23,6 +23,10 @@ public class PacketIO {
 
 	public void sendPacket(PacketData data, ClientSocket socket, PacketDispatcher dispatcher, UUID destination) throws IOException {
 		Packet<PacketData> packet = new Packet<>(data, dispatcher.findTypeId(data), destination);
+		sendPacket(packet, socket);
+	}
+
+	public void sendPacket(Packet<PacketData> packet, ClientSocket socket) throws IOException {
 		writeToStream(packet, socket.getOut());
 	}
 
@@ -43,9 +47,9 @@ public class PacketIO {
 		}
 
 		int packetType = in.readInt();
-		int length = in.readInt();
-		long leastSignificantBits = in.readLong();
 		long mostSignificantBits = in.readLong();
+		long leastSignificantBits = in.readLong();
+		int length = in.readInt();
 		UUID destination = new UUID(mostSignificantBits, leastSignificantBits);
 
 		if (length < 0 || length > maxPacketLength) {

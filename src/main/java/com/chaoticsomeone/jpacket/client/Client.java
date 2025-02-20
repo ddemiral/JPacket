@@ -23,6 +23,8 @@ public class Client {
 
 	public Client(PacketDispatcher dispatcher) {
 		this.dispatcher = dispatcher;
+
+		isRunning = false;
 	}
 
 	public void connect(String host, int port) throws IOException {
@@ -36,12 +38,23 @@ public class Client {
 		sendPacket(data, PacketIO.DESTINATION_SERVER);
 	}
 
-	public void sendPacket(PacketData data, UUID destination) throws IOException {
-		PacketIO.getInstance().sendPacket(data, socket, dispatcher, destination);
+	public void sendPacket(PacketData data, int destinationIndex) {
+		new Thread(() -> {
+			try {
+				while (knownClients.isEmpty()) {
+					System.out.println("Still waiting");
+					Thread.sleep(10);
+				}
+
+				sendPacket(data, new ArrayList<>(knownClients).get(destinationIndex));
+			} catch (IOException | InterruptedException e) {
+				e.printStackTrace();
+			}
+		}).start();
 	}
 
-	public void sendPacket(PacketData data, int destinationIndex) throws IOException {
-		sendPacket(data, new ArrayList<>(knownClients).get(destinationIndex));
+	public void sendPacket(PacketData data, UUID destination) throws IOException {
+		PacketIO.getInstance().sendPacket(data, socket, dispatcher, destination);
 	}
 
 	private void receivePacket() {

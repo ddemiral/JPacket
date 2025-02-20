@@ -88,7 +88,25 @@ public class Server extends Thread {
 	}
 
 	private void handlePacket(Packet<PacketData> packet, ClientSocket clientSocket, UUID uuid, Iterator<Map.Entry<UUID, ClientSocket>> iterator) throws IOException {
+		UUID destinationUuid = packet.getDestinationUUID();
+
+		if (destinationUuid.equals(PacketIO.DESTINATION_SERVER)) {
+			handlePacketSelf(packet, clientSocket, uuid, iterator);
+		} else if (destinationUuid.equals(PacketIO.DESTINATION_BROADCAST)) {
+			CollectionUtils.mapForEach(clientSockets, (iterator1, clientUuid, socket) -> {
+				PacketIO.getInstance().sendPacket(packet, socket);
+			});
+		} else if (clientSockets.containsKey(destinationUuid)) {
+			ClientSocket destinationSocket = clientSockets.get(packet.getDestinationUUID());
+			PacketIO.getInstance().sendPacket(packet, destinationSocket);
+		} else {
+			throw new IllegalArgumentException("Unknown destination uuid: " + destinationUuid);
+		}
+	}
+
+	private void handlePacketSelf(Packet<PacketData> packet, ClientSocket clientSocket, UUID uuid, Iterator<Map.Entry<UUID, ClientSocket>> iterator) throws IOException {
 		PacketData data = packet.getData();
+
 		if (data instanceof TerminatePacket) {
 			handleTerminatePacket(clientSocket, uuid, iterator);
 		} else if (data instanceof UUIDSyncPacket uuidPacket) {
