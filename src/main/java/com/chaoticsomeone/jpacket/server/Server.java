@@ -70,25 +70,37 @@ public class Server extends Thread {
 					Optional<PacketData> data = PacketIO.getInstance().readFromStream(clientSocket.getIn(), dispatcher);
 
 					ConditionalRunner.run(data.isPresent(), () -> {
-						if (data.get() instanceof TerminatePacket) {
-							PacketIO.getInstance().sendPacket(new TerminatePacket(), clientSocket, dispatcher);
-							iterator.remove();
-							close(); // @ToDo
-						} else if (data.get() instanceof UUIDSyncPacket packet) {
-							if (packet.getState() == 0) {
-								clientSocket.close();
-								iterator.remove();
-							}
-						} else {
-							dispatcher.dispatch(data.get());
-							PacketIO.getInstance().sendPacket(new ResponsePacket(200, data.get()), clientSocket, dispatcher);
-						}
+						handlePacket(data.get(), clientSocket, iterator);
 						Thread.sleep(10);
 					});
 				} catch (IOException | ClassNotFoundException e) {
 					e.printStackTrace();
 				}
 			});
+		}
+	}
+
+	private void handlePacket(PacketData data, ClientSocket clientSocket, Iterator<Map.Entry<UUID, ClientSocket>> iterator) throws IOException {
+		if (data instanceof TerminatePacket) {
+			handleTerminatePacket(clientSocket, iterator);
+		} else if (data instanceof UUIDSyncPacket packet) {
+			handleUuidSyncPacket(packet, clientSocket, iterator);
+		} else {
+			dispatcher.dispatch(data);
+			PacketIO.getInstance().sendPacket(new ResponsePacket(200, data), clientSocket, dispatcher);
+		}
+	}
+
+	private void handleTerminatePacket(ClientSocket clientSocket, Iterator<Map.Entry<UUID, ClientSocket>> iterator) throws IOException {
+		PacketIO.getInstance().sendPacket(new TerminatePacket(), clientSocket, dispatcher);
+		iterator.remove();
+		close(); // @ToDo
+	}
+
+	private void handleUuidSyncPacket(UUIDSyncPacket packet, ClientSocket clientSocket, Iterator<Map.Entry<UUID, ClientSocket>> iterator) throws IOException {
+		if (packet.getState() == 0) {
+			clientSocket.close();
+			iterator.remove();
 		}
 	}
 

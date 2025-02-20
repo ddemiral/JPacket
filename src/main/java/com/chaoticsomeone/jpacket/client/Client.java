@@ -2,7 +2,6 @@ package com.chaoticsomeone.jpacket.client;
 
 import com.chaoticsomeone.jpacket.common.ClientSocket;
 import com.chaoticsomeone.jpacket.common.PacketIO;
-import com.chaoticsomeone.jpacket.packet.Packet;
 import com.chaoticsomeone.jpacket.packet.PacketData;
 import com.chaoticsomeone.jpacket.packet.PacketDispatcher;
 import com.chaoticsomeone.jpacket.packet.defaulttypes.TerminatePacket;
