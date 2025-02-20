@@ -9,7 +9,11 @@ public class CollectionUtils {
 
 		while (iterator.hasNext()) {
 			Map.Entry<K, V> entry = iterator.next();
-			callable.call(iterator, entry.getKey(), entry.getValue());
+			try {
+				callable.call(iterator, entry.getKey(), entry.getValue());
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
 	}
 }
