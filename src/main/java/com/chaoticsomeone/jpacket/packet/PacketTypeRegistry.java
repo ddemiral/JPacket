@@ -21,11 +21,11 @@ public class PacketTypeRegistry {
 
 	}
 
-	public void register(Class<? extends PacketData> targetClass, PacketHandler<?> handler) {
+	public void register(Class<? extends PacketData> targetClass, PacketHandler handler) {
 		register(getNextId(), targetClass, handler);
 	}
 
-	private void register(int typeId, Class<? extends PacketData> targetClass, PacketHandler<?> handler) {
+	private void register(int typeId, Class<? extends PacketData> targetClass, PacketHandler handler) {
 		if (typeRegistry.containsKey(targetClass)) {
 			return;
 		}
@@ -37,7 +37,7 @@ public class PacketTypeRegistry {
 		return typeRegistry.get(packetClass);
 	}
 
-	public PacketHandler<?> findHandler(PacketData type) {
+	public PacketHandler findHandler(PacketData type) {
 		return typeRegistry.get(type.getClass()).getHandler();
 	}
 

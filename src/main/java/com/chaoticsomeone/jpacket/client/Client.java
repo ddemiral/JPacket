@@ -3,6 +3,7 @@ package com.chaoticsomeone.jpacket.client;
 import com.chaoticsomeone.jpacket.common.ClientSocket;
 import com.chaoticsomeone.jpacket.common.ConditionalRunner;
 import com.chaoticsomeone.jpacket.common.PacketIO;
+import com.chaoticsomeone.jpacket.packet.Packet;
 import com.chaoticsomeone.jpacket.packet.PacketData;
 import com.chaoticsomeone.jpacket.packet.PacketDispatcher;
 import com.chaoticsomeone.jpacket.packet.defaulttypes.ClientDiscoveryPacket;
@@ -10,16 +11,13 @@ import com.chaoticsomeone.jpacket.packet.defaulttypes.TerminatePacket;
 import com.chaoticsomeone.jpacket.packet.defaulttypes.UUIDSyncPacket;
 
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 public class Client {
 	private final PacketDispatcher dispatcher;
 	private ClientSocket socket;
 	private UUID uuid;
-	private final Set<UUID> knownClients = new HashSet<>();
+	private final Set<UUID> knownClients = new LinkedHashSet<>();
 
 	private volatile boolean isRunning;
 
@@ -42,20 +40,26 @@ public class Client {
 		PacketIO.getInstance().sendPacket(data, socket, dispatcher, destination);
 	}
 
+	public void sendPacket(PacketData data, int destinationIndex) throws IOException {
+		sendPacket(data, new ArrayList<>(knownClients).get(destinationIndex));
+	}
+
 	private void receivePacket() {
 		try {
-			Optional<PacketData> data = PacketIO.getInstance().readFromStream(socket.getIn(), dispatcher);
+			Optional<Packet<PacketData>> packet = PacketIO.getInstance().readFromStream(socket.getIn(), dispatcher);
 
-			ConditionalRunner.run(data.isPresent(), () -> {
-				if (data.get() instanceof TerminatePacket) {
+			ConditionalRunner.run(packet.isPresent(), () -> {
+				PacketData packetData = packet.get().getData();
+
+				if (packetData instanceof TerminatePacket) {
 					close();
-				} else if (data.get() instanceof UUIDSyncPacket packet) {
-					uuid = packet.getUuid();
-					sendPacket(packet.acknowledge());
-				} else if (data.get() instanceof ClientDiscoveryPacket packet) {
-					knownClients.addAll(packet.getNewClients());
+				} else if (packetData instanceof UUIDSyncPacket uuidPacket) {
+					uuid = uuidPacket.getUuid();
+					sendPacket(uuidPacket.acknowledge());
+				} else if (packetData instanceof ClientDiscoveryPacket discoveryPacket) {
+					knownClients.addAll(discoveryPacket.getNewClients());
 				} else {
-					dispatcher.dispatch(data.get());
+					dispatcher.dispatch(packet.get());
 				}
 			});
 		} catch (IOException | ClassNotFoundException e) {

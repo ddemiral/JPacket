@@ -10,12 +10,13 @@ public class PacketDispatcher {
 		this.registry = registry;
 	}
 
-	public <T extends PacketData> void dispatch(T packet) {
-		PacketType type = registry.getType(packet.getClass());
+	public <T extends PacketData> void dispatch(Packet<T> packet) {
+		T data = packet.getData();
+		PacketType type = registry.getType(data.getClass());
 		PacketHandler<T> handler = (PacketHandler<T>) type.getHandler();
 
 		if (handler != null) {
-			handler.handle(packet);
+			handler.handle(data);
 		} else if (type.getId() >= PacketTypeRegistry.CUSTOM_ID_START) {
 			throw new HandlerNotRegisteredException(packet.getClass());
 		}

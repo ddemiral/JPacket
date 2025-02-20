@@ -22,11 +22,12 @@ public class PacketIO {
 	}
 
 	public void sendPacket(PacketData data, ClientSocket socket, PacketDispatcher dispatcher, UUID destination) throws IOException {
-		Packet<PacketData> packet = new Packet<>(data, dispatcher.findTypeId(data));
-		writeToStream(packet, socket.getOut(), destination);
+		Packet<PacketData> packet = new Packet<>(data, dispatcher.findTypeId(data), destination);
+		writeToStream(packet, socket.getOut());
 	}
 
-	public void writeToStream(Packet<PacketData> packet, DataOutputStream out, UUID destination) throws IOException {
+	public void writeToStream(Packet<PacketData> packet, DataOutputStream out) throws IOException {
+		UUID destination = packet.getDestinationUUID();
 		byte[] bytes = packet.getBytes();
 		out.writeInt(packet.getType());
 		out.writeLong(destination.getMostSignificantBits());
@@ -36,7 +37,7 @@ public class PacketIO {
 		out.flush();
 	}
 
-	public Optional<PacketData> readFromStream(DataInputStream in, PacketDispatcher dispatcher) throws IOException, ClassNotFoundException {
+	public Optional<Packet<PacketData>> readFromStream(DataInputStream in, PacketDispatcher dispatcher) throws IOException, ClassNotFoundException {
 		if (in.available() <= 0) {
 			return Optional.empty();
 		}
@@ -55,8 +56,8 @@ public class PacketIO {
 		byte[] buffer = new byte[length];
 		in.readFully(buffer);
 
-		PacketData data = getInstance().deserialize(dispatcher.idToType(packetType), buffer);
-		return Optional.of(data);
+		PacketData data = deserialize(dispatcher.idToType(packetType), buffer);
+		return Optional.of(new Packet<>(data, packetType, destination));
 	}
 
 	private PacketData deserialize(PacketType type, byte[] bytes) throws IOException, ClassNotFoundException {

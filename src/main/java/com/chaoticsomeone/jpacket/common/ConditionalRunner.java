@@ -7,7 +7,7 @@ public class ConditionalRunner {
 				runnable.run();
 			}
 		} catch (Exception e) {
-			throw new RuntimeException(e);
+			e.printStackTrace();
 		}
 	}
 

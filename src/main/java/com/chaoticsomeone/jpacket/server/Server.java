@@ -1,6 +1,7 @@
 package com.chaoticsomeone.jpacket.server;
 
 import com.chaoticsomeone.jpacket.common.*;
+import com.chaoticsomeone.jpacket.packet.Packet;
 import com.chaoticsomeone.jpacket.packet.PacketData;
 import com.chaoticsomeone.jpacket.packet.PacketDispatcher;
 import com.chaoticsomeone.jpacket.packet.defaulttypes.ClientDiscoveryPacket;
@@ -73,7 +74,7 @@ public class Server extends Thread {
 						return;
 					}
 
-					Optional<PacketData> data = PacketIO.getInstance().readFromStream(clientSocket.getIn(), dispatcher);
+					Optional<Packet<PacketData>> data = PacketIO.getInstance().readFromStream(clientSocket.getIn(), dispatcher);
 
 					ConditionalRunner.run(data.isPresent(), () -> {
 						handlePacket(data.get(), clientSocket, uuid, iterator);
@@ -86,13 +87,14 @@ public class Server extends Thread {
 		}
 	}
 
-	private void handlePacket(PacketData data, ClientSocket clientSocket, UUID uuid, Iterator<Map.Entry<UUID, ClientSocket>> iterator) throws IOException {
+	private void handlePacket(Packet<PacketData> packet, ClientSocket clientSocket, UUID uuid, Iterator<Map.Entry<UUID, ClientSocket>> iterator) throws IOException {
+		PacketData data = packet.getData();
 		if (data instanceof TerminatePacket) {
 			handleTerminatePacket(clientSocket, uuid, iterator);
-		} else if (data instanceof UUIDSyncPacket packet) {
-			handleUuidSyncPacket(packet, clientSocket, iterator);
+		} else if (data instanceof UUIDSyncPacket uuidPacket) {
+			handleUuidSyncPacket(uuidPacket, clientSocket, iterator);
 		} else {
-			dispatcher.dispatch(data);
+			dispatcher.dispatch(packet);
 			PacketIO.getInstance().sendPacket(new ResponsePacket(200, data), clientSocket, dispatcher, uuid);
 		}
 	}
