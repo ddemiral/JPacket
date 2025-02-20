@@ -43,7 +43,7 @@ public class Server extends Thread {
 							PacketIO.getInstance().sendPacket(new ClientDiscoveryPacket(clientUuid), other, dispatcher, uuid);
 						});
 
-						PacketIO.getInstance().sendPacket(new ClientDiscoveryPacket(clientSockets.keySet()), socket, dispatcher, clientUuid);
+						PacketIO.getInstance().sendPacket(new ClientDiscoveryPacket(clientSockets), socket, dispatcher, clientUuid);
 
 						clientSockets.put(clientUuid, socket);
 
