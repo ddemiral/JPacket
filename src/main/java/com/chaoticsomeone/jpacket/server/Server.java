@@ -1,11 +1,9 @@
 package com.chaoticsomeone.jpacket.server;
 
-import com.chaoticsomeone.jpacket.common.ClientSocket;
-import com.chaoticsomeone.jpacket.common.CollectionUtils;
-import com.chaoticsomeone.jpacket.common.ConditionalRunner;
-import com.chaoticsomeone.jpacket.common.PacketIO;
+import com.chaoticsomeone.jpacket.common.*;
 import com.chaoticsomeone.jpacket.packet.PacketData;
 import com.chaoticsomeone.jpacket.packet.PacketDispatcher;
+import com.chaoticsomeone.jpacket.packet.defaulttypes.ClientDiscoveryPacket;
 import com.chaoticsomeone.jpacket.packet.defaulttypes.ResponsePacket;
 import com.chaoticsomeone.jpacket.packet.defaulttypes.TerminatePacket;
 import com.chaoticsomeone.jpacket.packet.defaulttypes.UUIDSyncPacket;
@@ -39,7 +37,15 @@ public class Server extends Thread {
 				clientSocket.ifPresent((socket) -> {
 					ConditionalRunner.runOrElse(canAcceptClient(clientSocket), () -> {
 						UUID clientUuid = UUID.randomUUID();
+
+						CollectionUtils.mapForEach(clientSockets, (iterator, uuid, other) -> {
+							PacketIO.getInstance().sendPacket(new ClientDiscoveryPacket(clientUuid), other, dispatcher);
+						});
+
+						PacketIO.getInstance().sendPacket(new ClientDiscoveryPacket(clientSockets.keySet()), socket, dispatcher);
+
 						clientSockets.put(clientUuid, socket);
+
 						PacketIO.getInstance().sendPacket(new UUIDSyncPacket(clientUuid), socket, dispatcher);
 					}, () -> PacketIO.getInstance().sendPacket(new TerminatePacket(), socket, dispatcher));
 				});

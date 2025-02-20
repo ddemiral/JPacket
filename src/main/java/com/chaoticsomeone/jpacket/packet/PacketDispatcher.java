@@ -11,11 +11,12 @@ public class PacketDispatcher {
 	}
 
 	public <T extends PacketData> void dispatch(T packet) {
-		PacketHandler<T> handler = (PacketHandler<T>) registry.getType(packet.getClass()).getHandler();
+		PacketType type = registry.getType(packet.getClass());
+		PacketHandler<T> handler = (PacketHandler<T>) type.getHandler();
 
 		if (handler != null) {
 			handler.handle(packet);
-		} else {
+		} else if (type.getId() >= PacketTypeRegistry.CUSTOM_ID_START) {
 			throw new HandlerNotRegisteredException(packet.getClass());
 		}
 	}

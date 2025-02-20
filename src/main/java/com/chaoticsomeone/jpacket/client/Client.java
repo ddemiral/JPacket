@@ -1,20 +1,25 @@
 package com.chaoticsomeone.jpacket.client;
 
 import com.chaoticsomeone.jpacket.common.ClientSocket;
+import com.chaoticsomeone.jpacket.common.ConditionalRunner;
 import com.chaoticsomeone.jpacket.common.PacketIO;
 import com.chaoticsomeone.jpacket.packet.PacketData;
 import com.chaoticsomeone.jpacket.packet.PacketDispatcher;
+import com.chaoticsomeone.jpacket.packet.defaulttypes.ClientDiscoveryPacket;
 import com.chaoticsomeone.jpacket.packet.defaulttypes.TerminatePacket;
 import com.chaoticsomeone.jpacket.packet.defaulttypes.UUIDSyncPacket;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 public class Client {
 	private final PacketDispatcher dispatcher;
 	private ClientSocket socket;
 	private UUID uuid;
+	private final Set<UUID> knownClients = new HashSet<>();
 
 	private volatile boolean isRunning;
 
@@ -37,14 +42,18 @@ public class Client {
 		try {
 			Optional<PacketData> data = PacketIO.getInstance().readFromStream(socket.getIn(), dispatcher);
 
-			if (data.isPresent() && data.get() instanceof TerminatePacket) {
-				close();
-			} else if (data.isPresent() && data.get() instanceof UUIDSyncPacket packet) {
-				uuid = packet.getUuid();
-				PacketIO.getInstance().sendPacket(packet.acknowledge(), socket, dispatcher);
-			} else {
-				data.ifPresent(dispatcher::dispatch);
-			}
+			ConditionalRunner.run(data.isPresent(), () -> {
+				if (data.get() instanceof TerminatePacket) {
+					close();
+				} else if (data.get() instanceof UUIDSyncPacket packet) {
+					uuid = packet.getUuid();
+					PacketIO.getInstance().sendPacket(packet.acknowledge(), socket, dispatcher);
+				} else if (data.get() instanceof ClientDiscoveryPacket packet) {
+					knownClients.addAll(packet.getNewClients());
+				} else {
+					dispatcher.dispatch(data.get());
+				}
+			});
 		} catch (IOException | ClassNotFoundException e) {
 			e.printStackTrace();
 		}

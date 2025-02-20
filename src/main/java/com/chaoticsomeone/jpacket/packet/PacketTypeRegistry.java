@@ -1,9 +1,6 @@
 package com.chaoticsomeone.jpacket.packet;
 
-import com.chaoticsomeone.jpacket.packet.defaulttypes.ResponseHandler;
-import com.chaoticsomeone.jpacket.packet.defaulttypes.ResponsePacket;
-import com.chaoticsomeone.jpacket.packet.defaulttypes.TerminatePacket;
-import com.chaoticsomeone.jpacket.packet.defaulttypes.UUIDSyncPacket;
+import com.chaoticsomeone.jpacket.packet.defaulttypes.*;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -19,6 +16,7 @@ public class PacketTypeRegistry {
 
 		register(16, TerminatePacket.class, null);
 		register(32, UUIDSyncPacket.class, null);
+		register(48, ClientDiscoveryPacket.class, null);
 		register(64, ResponsePacket.class, new ResponseHandler());
 
 	}
