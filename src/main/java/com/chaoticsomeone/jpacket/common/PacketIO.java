@@ -7,8 +7,12 @@ import com.chaoticsomeone.jpacket.packet.PacketType;
 
 import java.io.*;
 import java.util.Optional;
+import java.util.UUID;
 
 public class PacketIO {
+	public static final UUID DESTINATION_SERVER = new UUID(0, 0);
+	public static final UUID DESTINATION_BROADCAST = new UUID(Long.MAX_VALUE, Long.MAX_VALUE);
+
 	private static final PacketIO instance = new PacketIO(1_000_000);
 
 	private final int maxPacketLength;
@@ -17,14 +21,16 @@ public class PacketIO {
 		this.maxPacketLength = maxPacketLength;
 	}
 
-	public void sendPacket(PacketData data, ClientSocket socket, PacketDispatcher dispatcher) throws IOException {
+	public void sendPacket(PacketData data, ClientSocket socket, PacketDispatcher dispatcher, UUID destination) throws IOException {
 		Packet<PacketData> packet = new Packet<>(data, dispatcher.findTypeId(data));
-		writeToStream(packet, socket.getOut());
+		writeToStream(packet, socket.getOut(), destination);
 	}
 
-	public void writeToStream(Packet<PacketData> packet, DataOutputStream out) throws IOException {
+	public void writeToStream(Packet<PacketData> packet, DataOutputStream out, UUID destination) throws IOException {
 		byte[] bytes = packet.getBytes();
 		out.writeInt(packet.getType());
+		out.writeLong(destination.getMostSignificantBits());
+		out.writeLong(destination.getLeastSignificantBits());
 		out.writeInt(bytes.length);
 		out.write(bytes);
 		out.flush();
@@ -37,6 +43,9 @@ public class PacketIO {
 
 		int packetType = in.readInt();
 		int length = in.readInt();
+		long leastSignificantBits = in.readLong();
+		long mostSignificantBits = in.readLong();
+		UUID destination = new UUID(mostSignificantBits, leastSignificantBits);
 
 		if (length < 0 || length > maxPacketLength) {
 			in.skipBytes(length);

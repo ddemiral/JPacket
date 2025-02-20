@@ -35,19 +35,19 @@ public class Server extends Thread {
 				final Optional<ClientSocket> clientSocket = ClientSocket.fromAccepted(serverSocket);
 
 				clientSocket.ifPresent((socket) -> {
-					ConditionalRunner.runOrElse(canAcceptClient(clientSocket), () -> {
-						UUID clientUuid = UUID.randomUUID();
+					UUID clientUuid = UUID.randomUUID();
 
+					ConditionalRunner.runOrElse(canAcceptClient(clientSocket), () -> {
 						CollectionUtils.mapForEach(clientSockets, (iterator, uuid, other) -> {
-							PacketIO.getInstance().sendPacket(new ClientDiscoveryPacket(clientUuid), other, dispatcher);
+							PacketIO.getInstance().sendPacket(new ClientDiscoveryPacket(clientUuid), other, dispatcher, uuid);
 						});
 
-						PacketIO.getInstance().sendPacket(new ClientDiscoveryPacket(clientSockets.keySet()), socket, dispatcher);
+						PacketIO.getInstance().sendPacket(new ClientDiscoveryPacket(clientSockets.keySet()), socket, dispatcher, clientUuid);
 
 						clientSockets.put(clientUuid, socket);
 
-						PacketIO.getInstance().sendPacket(new UUIDSyncPacket(clientUuid), socket, dispatcher);
-					}, () -> PacketIO.getInstance().sendPacket(new TerminatePacket(), socket, dispatcher));
+						PacketIO.getInstance().sendPacket(new UUIDSyncPacket(clientUuid), socket, dispatcher, clientUuid);
+					}, () -> PacketIO.getInstance().sendPacket(new TerminatePacket(), socket, dispatcher, clientUuid));
 				});
 			}
 		});
@@ -76,7 +76,7 @@ public class Server extends Thread {
 					Optional<PacketData> data = PacketIO.getInstance().readFromStream(clientSocket.getIn(), dispatcher);
 
 					ConditionalRunner.run(data.isPresent(), () -> {
-						handlePacket(data.get(), clientSocket, iterator);
+						handlePacket(data.get(), clientSocket, uuid, iterator);
 						Thread.sleep(10);
 					});
 				} catch (IOException | ClassNotFoundException e) {
@@ -86,19 +86,19 @@ public class Server extends Thread {
 		}
 	}
 
-	private void handlePacket(PacketData data, ClientSocket clientSocket, Iterator<Map.Entry<UUID, ClientSocket>> iterator) throws IOException {
+	private void handlePacket(PacketData data, ClientSocket clientSocket, UUID uuid, Iterator<Map.Entry<UUID, ClientSocket>> iterator) throws IOException {
 		if (data instanceof TerminatePacket) {
-			handleTerminatePacket(clientSocket, iterator);
+			handleTerminatePacket(clientSocket, uuid, iterator);
 		} else if (data instanceof UUIDSyncPacket packet) {
 			handleUuidSyncPacket(packet, clientSocket, iterator);
 		} else {
 			dispatcher.dispatch(data);
-			PacketIO.getInstance().sendPacket(new ResponsePacket(200, data), clientSocket, dispatcher);
+			PacketIO.getInstance().sendPacket(new ResponsePacket(200, data), clientSocket, dispatcher, uuid);
 		}
 	}
 
-	private void handleTerminatePacket(ClientSocket clientSocket, Iterator<Map.Entry<UUID, ClientSocket>> iterator) throws IOException {
-		PacketIO.getInstance().sendPacket(new TerminatePacket(), clientSocket, dispatcher);
+	private void handleTerminatePacket(ClientSocket clientSocket, UUID uuid, Iterator<Map.Entry<UUID, ClientSocket>> iterator) throws IOException {
+		PacketIO.getInstance().sendPacket(new TerminatePacket(), clientSocket, dispatcher, uuid);
 		iterator.remove();
 		close(); // @ToDo
 	}

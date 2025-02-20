@@ -35,7 +35,11 @@ public class Client {
 	}
 
 	public void sendPacket(PacketData data) throws IOException {
-		PacketIO.getInstance().sendPacket(data, socket, dispatcher);
+		sendPacket(data, PacketIO.DESTINATION_SERVER);
+	}
+
+	public void sendPacket(PacketData data, UUID destination) throws IOException {
+		PacketIO.getInstance().sendPacket(data, socket, dispatcher, destination);
 	}
 
 	private void receivePacket() {
@@ -47,7 +51,7 @@ public class Client {
 					close();
 				} else if (data.get() instanceof UUIDSyncPacket packet) {
 					uuid = packet.getUuid();
-					PacketIO.getInstance().sendPacket(packet.acknowledge(), socket, dispatcher);
+					sendPacket(packet.acknowledge());
 				} else if (data.get() instanceof ClientDiscoveryPacket packet) {
 					knownClients.addAll(packet.getNewClients());
 				} else {
@@ -76,7 +80,7 @@ public class Client {
 
 	public void disconnect() {
 		try {
-			PacketIO.getInstance().sendPacket(new TerminatePacket(), socket, dispatcher);
+			sendPacket(new TerminatePacket());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
