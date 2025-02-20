@@ -42,7 +42,6 @@ public class Client {
 		new Thread(() -> {
 			try {
 				while (knownClients.isEmpty()) {
-					System.out.println("Still waiting");
 					Thread.sleep(10);
 				}
 
@@ -69,8 +68,10 @@ public class Client {
 				} else if (packetData instanceof UUIDSyncPacket uuidPacket) {
 					uuid = uuidPacket.getUuid();
 					sendPacket(uuidPacket.acknowledge());
+					System.out.println("Client acknowledged UUID " + uuid);
 				} else if (packetData instanceof ClientDiscoveryPacket discoveryPacket) {
 					knownClients.addAll(discoveryPacket.getNewClients());
+					System.out.println(discoveryPacket.getNewClients());
 				} else {
 					dispatcher.dispatch(packet.get());
 				}

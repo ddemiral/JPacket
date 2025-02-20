@@ -6,6 +6,7 @@ import com.chaoticsomeone.jpacket.packet.PacketDispatcher;
 import com.chaoticsomeone.jpacket.packet.PacketType;
 
 import java.io.*;
+import java.net.SocketException;
 import java.util.Optional;
 import java.util.UUID;
 

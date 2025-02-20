@@ -33,17 +33,27 @@ public class Server extends Thread {
 
 		clientAcceptThread = new Thread(() -> {
 			while (isAdvertising) {
+				if (clientSockets.size() >= maxClients) {
+					stopAdvertising();
+					break;
+				}
+
 				final Optional<ClientSocket> clientSocket = ClientSocket.fromAccepted(serverSocket);
 
 				clientSocket.ifPresent((socket) -> {
 					UUID clientUuid = UUID.randomUUID();
 
+					System.out.println("Client " + clientUuid + " connected");
+
 					ConditionalRunner.runOrElse(canAcceptClient(clientSocket), () -> {
+						System.out.println(clientSockets);
 						CollectionUtils.mapForEach(clientSockets, (iterator, uuid, other) -> {
+							System.out.println("Informed client " + uuid + " about " + clientUuid);
 							PacketIO.getInstance().sendPacket(new ClientDiscoveryPacket(clientUuid), other, dispatcher, uuid);
 						});
 
 						PacketIO.getInstance().sendPacket(new ClientDiscoveryPacket(clientSockets), socket, dispatcher, clientUuid);
+						System.out.println("Informed client " + clientUuid + " about all other clients");
 
 						clientSockets.put(clientUuid, socket);
 
@@ -119,8 +129,8 @@ public class Server extends Thread {
 
 	private void handleTerminatePacket(ClientSocket clientSocket, UUID uuid, Iterator<Map.Entry<UUID, ClientSocket>> iterator) throws IOException {
 		PacketIO.getInstance().sendPacket(new TerminatePacket(), clientSocket, dispatcher, uuid);
-		iterator.remove();
-		close(); // @ToDo
+		//iterator.remove();
+		//close(); // @ToDo
 	}
 
 	private void handleUuidSyncPacket(UUIDSyncPacket packet, ClientSocket clientSocket, Iterator<Map.Entry<UUID, ClientSocket>> iterator) throws IOException {
